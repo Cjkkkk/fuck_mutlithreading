@@ -54,27 +54,23 @@ int get_index(char direction){
 }
 
 void *deadlock_detect_thread(void *x_void_ptr){
-    int i = 0;
+    int loop = 0;
     pthread_mutex_lock( & detect_thread_mutex ); //不允许更改车队数目
-    while(i < 1000){
+    while(loop < 1000){
         pthread_cond_wait( & dead_lock_detection, & detect_thread_mutex );
-        pthread_mutex_lock( & north_mutex );
-        pthread_mutex_lock( & east_mutex );
-        pthread_mutex_lock( & south_mutex );
-        pthread_mutex_lock( & west_mutex );
+        for(int i = 0 ; i < 4 ; i++) pthread_mutex_lock( mutex_list[i] );
         //printf("begin:%d\n", number);
         if(north_queue_number > 0 && south_queue_number > 0 && east_queue_number >0 && west_queue_number > 0){
             is_deadlock = true;
             printf("DEADLOCK: car jam detected, signalling %c to go\n", request_direction);
-        }else is_deadlock = false;
-        i ++;
-        int index = get_index(request_direction);
-//        printf("end:%d\n", number);
-        pthread_mutex_unlock( & north_mutex );
-        pthread_mutex_unlock( & east_mutex );
-        pthread_mutex_unlock( & south_mutex );
-        pthread_mutex_unlock( & west_mutex );
-        pthread_cond_signal( first_cond_list[index] );
+        }
+        else is_deadlock = false;
+        //printf("end:%d\n", number);
+        for(int i = 0 ; i < 4 ; i++){
+            pthread_mutex_unlock( mutex_list[i] );
+        }
+        pthread_cond_signal( first_cond_list[get_index(request_direction)] ); // 通知申请检测的车
+        loop ++;
     }
     pthread_mutex_unlock( & detect_thread_mutex ); //不允许更改车队数目
     pthread_exit(NULL);//离开线程
@@ -88,9 +84,8 @@ void *car_arrive(void *x_void_ptr){
     int left_index = (index + 1) % 4;
     pthread_mutex_lock( mutex_list[index] );
     *(number_list[index]) = *(number_list[index]) + 1;
-    if(* number_list[index] > 1) {
-        pthread_cond_wait( queue_cond_list[index], mutex_list[index] );
-    }
+    if(* number_list[index] > 1) pthread_cond_wait( queue_cond_list[index], mutex_list[index] );
+
     //达到路口
     printf("car %d from %c arrives at crossing\n", new_car.car_number, new_car.direction);   //输出到达路口的信息
     pthread_mutex_unlock( mutex_list[index] );
@@ -113,7 +108,7 @@ void *car_arrive(void *x_void_ptr){
     pthread_mutex_unlock( mutex_list[index] );
     // 通知左边的队列
     pthread_cond_signal( first_cond_list[left_index] );
-    sleep(1);
+//    sleep(1);
     pthread_cond_signal( queue_cond_list[index] );
     pthread_exit(NULL);//离开线程
 }
