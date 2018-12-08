@@ -107,6 +107,7 @@ void *car_arrive(void *x_void_ptr){
     *(number_list[index]) = *(number_list[index]) - 1;
     pthread_mutex_unlock( mutex_list[index] );
     // 通知左边的队列
+    sleep(1);
     pthread_cond_signal( first_cond_list[left_index] );
 //    sleep(1);
     pthread_cond_signal( queue_cond_list[index] );
@@ -126,8 +127,8 @@ int main(int argc, char** argv){
     }
     for(count = 0 ; count < max_thread_number ; count++){
         if(cars[count]){
-            resource[count].car_number = count;
-            resource[count].direction = cars[count];
+            car new_car = { count, cars[count]};
+            resource[count] = new_car;
             if(pthread_create(&(thread_list[count]), NULL, car_arrive, &(resource[count]))) {
                 fprintf(stderr, "Error creating thread\n");
                 return 1;

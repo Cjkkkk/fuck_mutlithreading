@@ -3,5 +3,5 @@ all:
 
 .PHONY: test
 test:
-	./car_process nsewwewn
-	./car_process nnnnssnnn
+#	./car_process nsewwewn
+	./car_process nnnnsssssnnnnnnnnnn
